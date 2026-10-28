@@ -20,7 +20,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <a className="skip" href="#main">Skip to results</a>
         <div className="sitebar">
-          <Link href="/" className="brand"><span className="brand-mark" aria-hidden="true" />MedEx Explorer</Link>
+          <Link href="/" className="brand"><img className="brand-logo" src="/medex-logo.png" width={640} height={250} alt="MedEx Health Services" /><span className="brand-name">Explorer</span></Link>
           <ThemeToggle />
         </div>
         {children}

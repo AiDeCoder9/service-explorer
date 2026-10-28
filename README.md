@@ -100,6 +100,9 @@ The redesign follows three ideas, and each one answers one of those problems.
 - **Simpler cards.** Provider avatar, one price line per service, less boxing. Chips now show only what the pills do not already show (search text, category, provider). *Why:* less to read per result.
 - **Visual system.** New tokens (teal to indigo accent, softer surfaces, layered shadows), a glowing ask bar as the focal point, and light and dark themes with a manual toggle applied before first paint so there is no flash. System fonts are kept so there is no extra request and no layout shift.
 
+### Branding
+The header uses the MedEx Health Services logo (`public/medex-logo.png`, downscaled to 640 px wide, with explicit width and height so it causes no layout shift). It is the only thing taken from the company's website: the colours and fonts are unchanged and the dataset is the supplied one. The wordmark is purple on transparent, so in dark mode it sits on a light chip to stay legible.
+
 ### What did not change
 
 The engine, data normalisation, URL codec and the API are untouched. The URL is still the single source of truth, so reload, sharing and back/forward behave as before. Currencies are never converted, zero-count facets are never hidden, and the skeleton still matches the card footprint (CLS 0.0000 on the e2e run).
