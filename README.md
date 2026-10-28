@@ -8,15 +8,15 @@ A page where a customer browses and filters health services grouped by provider,
 ## Run it
 
 ```bash
-npm install
-npm run dev          # http://localhost:3000
+yarn install
+yarn dev              # http://localhost:3000
 ```
 
 | Command | What it does |
 | --- | --- |
-| `npm test` | 48 unit tests (data rules, pricing, facet engine, grouping, URL) |
-| `npm run typecheck` | TypeScript, strict |
-| `npm run build && npm start -- -p 3100` then `npm run e2e` | 17 browser checks over Chrome's DevTools protocol (needs Google Chrome; set `CHROME_PATH` elsewhere) |
+| `yarn test` | 55 unit tests (data rules, pricing, facet engine, grouping, URL) |
+| `yarn typecheck` | TypeScript, strict |
+| `yarn build && yarn start -p 3100` then `yarn e2e` | 19 browser checks over Chrome's DevTools protocol (needs Google Chrome; set `CHROME_PATH` elsewhere) |
 
 To see the API failure state, tick **Simulate API failure** in the page footer (it sets a cookie the mock API reads and reloads), then use **Try again**.
 
@@ -112,7 +112,7 @@ The engine, data normalisation, URL codec and the API are untouched. The URL is 
 
 ### Development note
 
-Do not run `npm run build` while `npm run dev` is running. They share the `.next` folder, and the dev server then serves a mix of old and new files, which shows up as half-styled pages. Stop dev first, or build elsewhere.
+Do not run `yarn build` while `yarn dev` is running. They share the `.next` folder, and the dev server then serves a mix of old and new files, which shows up as half-styled pages. Stop dev first, or build elsewhere.
 
 ## Data mistakes and what the customer sees
 

@@ -2,7 +2,7 @@ import { spawn } from 'node:child_process';
 import { setTimeout as sleep } from 'node:timers/promises';
 
 // Browser checks over the Chrome DevTools protocol. No test framework or browser download needed.
-// Start the app first (npm run build && npm start -- -p 3100), then: npm run e2e
+// Start the app first (yarn build && yarn start -p 3100), then: yarn e2e
 // Env: BASE_URL (default http://localhost:3100), CHROME_PATH (default: macOS Google Chrome).
 const BASE = process.env.BASE_URL ?? 'http://localhost:3100';
 const chrome = spawn(process.env.CHROME_PATH ?? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', [
