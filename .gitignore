@@ -1,0 +1,8 @@
+node_modules
+.next
+.gstack/
+next-env.d.ts
+tsconfig.tsbuildinfo
+.DS_Store
+# the take-home brief belongs to MedEx
+docs/*.pdf
