@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { SearchIndex } from '@/lib/engine';
 import { type Filters, search } from '@/lib/engine/search';
-import { FilterPanel } from './FilterPanel';
+import { FilterPanel, type PanelGroup } from './FilterPanel';
 
 interface Props {
   open: boolean;
@@ -11,13 +11,15 @@ interface Props {
   applied: Filters;
   onClose: () => void;
   onApply: (next: Filters) => void;
+  title?: string;
+  only?: PanelGroup[];
 }
 
 /**
- * Mobile filters. Choices are pending until the customer applies them, and the
+ * Filter sheet (side panel on desktop, bottom sheet on phones). Choices are pending until the customer applies them, and the
  * button says how many results the pending choices will give, before applying.
  */
-export function FilterDrawer({ open, index, applied, onClose, onApply }: Props) {
+export function FilterDrawer({ open, index, applied, onClose, onApply, title = 'Filters', only }: Props) {
   const ref = useRef<HTMLDialogElement>(null);
   const [pending, setPending] = useState(applied);
 
@@ -34,11 +36,11 @@ export function FilterDrawer({ open, index, applied, onClose, onApply }: Props) 
   return (
     <dialog ref={ref} className="drawer" aria-labelledby="drawer-title" onClose={onClose}>
       <div className="drawer-head">
-        <h2 id="drawer-title">Filters</h2>
-        <button type="button" className="btn ghost" onClick={onClose} aria-label="Close filters">Close</button>
+        <h2 id="drawer-title">{title}</h2>
+        <button type="button" className="btn ghost" onClick={onClose} aria-label="Close">Close</button>
       </div>
       <div className="drawer-body">
-        <FilterPanel index={index} filters={pending} result={result} onChange={setPending} />
+        <FilterPanel index={index} filters={pending} result={result} onChange={setPending} only={only} />
       </div>
       <div className="drawer-foot">
         <button type="button" className="btn primary wide" aria-live="polite" onClick={() => { onApply(pending); onClose(); }}>

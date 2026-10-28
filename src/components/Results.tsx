@@ -8,9 +8,11 @@ import { type ProviderGroup, type ResultPage, type SortKey, providerServices } f
 import type { Filters, SearchResult } from '@/lib/engine/search';
 import { TYPE_SINGULAR, formatMoney, plural } from '@/lib/format';
 
-function PriceBlock({ service }: { service: Service }) {
+export function PriceBlock({ service, align }: { service: Service; align?: 'start' }) {
   const { pricing: p, currency: c } = service;
-  if (p.kind === 'unverified') return <div className="price"><span className="muted">Price on request</span></div>;
+  const cls = 'price';
+  const style = align === 'start' ? { textAlign: 'left' as const } : undefined;
+  if (p.kind === 'unverified') return <div className="price" style={style}><span className="muted">Price on request</span></div>;
 
   const show = (price: Price) => {
     if (price.isFree) return <strong>Free</strong>;
@@ -25,16 +27,19 @@ function PriceBlock({ service }: { service: Service }) {
 
   if (p.kind === 'wellness') {
     return (
-      <div className="price">
+      <div className={cls} style={style}>
         <span className="muted small">from </span>{show(p.from.price)}
         <div className="muted small">{p.from.minutes} min{p.options.length > 1 ? ` · ${p.options.length} durations` : ''}</div>
       </div>
     );
   }
-  return <div className="price">{show(p.price)}</div>;
+  return <div className={cls} style={style}>{show(p.price)}</div>;
 }
 
-function ServiceRow({ service, where }: { service: Service; where: string }) {
+export interface CompareState { ids: string[]; toggle: (id: string) => void; full: boolean }
+
+function ServiceRow({ service, where, compare }: { service: Service; where: string; compare: CompareState }) {
+  const on = compare.ids.includes(service.id);
   return (
     <li className="service">
       <div className="service-main">
@@ -42,13 +47,17 @@ function ServiceRow({ service, where }: { service: Service; where: string }) {
         <span className="muted small">
           {[TYPE_SINGULAR[service.type], where].filter(Boolean).join(' · ')}{service.testAtHome ? ' · Home test available' : ''}
         </span>
+        <label className="cmp">
+          <input type="checkbox" checked={on} disabled={!on && compare.full} onChange={() => compare.toggle(service.id)} />
+          Compare<span className="sr-only"> {service.title}</span>
+        </label>
       </div>
       <PriceBlock service={service} />
     </li>
   );
 }
 
-function Rating({ provider }: { provider: ProviderGroup['provider'] }) {
+export function Rating({ provider }: { provider: ProviderGroup['provider'] }) {
   if (provider.rating === null) return <span className="badge">New on MedEx</span>;
   return (
     <span aria-label={`Rated ${provider.rating} out of 5${provider.reviewCount ? ` from ${provider.reviewCount} reviews` : ''}`}>
@@ -64,9 +73,10 @@ interface CardProps {
   result: SearchResult;
   filters: Filters;
   sort: SortKey;
+  compare: CompareState;
 }
 
-function ProviderCard({ group, index, result, filters, sort }: CardProps) {
+function ProviderCard({ group, index, result, filters, sort, compare }: CardProps) {
   const [expanded, setExpanded] = useState(false);
   const listId = useId();
   const all = useMemo(
@@ -79,14 +89,17 @@ function ProviderCard({ group, index, result, filters, sort }: CardProps) {
   return (
     <article className="card">
       <header>
-        <div>
-          <h3>{provider.name}</h3>
-          <p className="muted small">{[provider.city, provider.country].filter(Boolean).join(', ')} · {group.currency}</p>
+        <div className="who">
+          <span className="avatar" aria-hidden="true">{provider.name.trim().charAt(0).toUpperCase()}</span>
+          <div>
+            <h3>{provider.name}</h3>
+            <p className="muted small">{[provider.city, provider.country].filter(Boolean).join(', ')} · {group.currency}</p>
+          </div>
         </div>
         <Rating provider={provider} />
       </header>
       <ul className="services" id={listId}>
-        {all.map((s) => <ServiceRow key={s.id} service={s} where={where(s)} />)}
+        {all.map((s) => <ServiceRow key={s.id} service={s} where={where(s)} compare={compare} />)}
       </ul>
       {total > group.services.length && (
         <button type="button" className="btn ghost" aria-expanded={expanded} aria-controls={listId} onClick={() => setExpanded((v) => !v)}>
@@ -102,7 +115,7 @@ interface ListProps extends Omit<CardProps, 'group'> {
   hrefFor: (page: number) => string;
 }
 
-export function ResultsList({ page, index, result, filters, sort, hrefFor }: ListProps) {
+export function ResultsList({ page, index, result, filters, sort, compare, hrefFor }: ListProps) {
   let previous: string | null = null;
   return (
     <>
@@ -113,7 +126,7 @@ export function ResultsList({ page, index, result, filters, sort, hrefFor }: Lis
           return (
             <li key={g.provider.id} className="card-wrap">
               {band && <h3 className="band">Prices in {band} <span className="muted small">· not compared with other currencies</span></h3>}
-              <ProviderCard group={g} index={index} result={result} filters={filters} sort={sort} />
+              <ProviderCard group={g} index={index} result={result} filters={filters} sort={sort} compare={compare} />
             </li>
           );
         })}
@@ -153,21 +166,23 @@ export function ErrorState({ message, onRetry }: { message: string; onRetry: () 
   );
 }
 
-export function EmptyState({ suggestions, onRemove, onClearAll }: {
+export function EmptyState({ suggestions, onRemove, onClearAll, onAskAgain }: {
   suggestions: { name: string; label: string; total: number }[];
   onRemove: (name: string) => void;
   onClearAll: () => void;
+  onAskAgain: () => void;
 }) {
   return (
     <div className="state">
       <h2>No services match these filters</h2>
-      <p className="muted">Here is the quickest way back to results:</p>
+      <p className="muted">{suggestions.length > 0 ? 'The quickest ways back to results, best first:' : 'Nothing is left to relax. Start again or ask differently.'}</p>
       <div className="suggest">
         {suggestions.slice(0, 3).map((s) => (
           <button key={s.name} type="button" className="btn" onClick={() => onRemove(s.name)}>
             Remove the {s.label} filter <span className="count">{s.total.toLocaleString('en')} results</span>
           </button>
         ))}
+        <button type="button" className="btn ghost" onClick={onAskAgain}>Ask differently</button>
         <button type="button" className="btn ghost" onClick={onClearAll}>Clear all filters</button>
       </div>
     </div>

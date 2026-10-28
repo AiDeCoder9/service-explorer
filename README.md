@@ -69,6 +69,51 @@ Pagination is over providers (10 per page). "View all N services" expands the ca
 ### Mobile
 Filters open in a native `<dialog>` drawer. Choices are pending until applied, and the button reads "Show 1,155 results" using the pending selection, before it is applied.
 
+## UI overhaul: ask, act, simplify
+
+### Why we changed it
+
+The first version worked and was fast, but it was a conventional sidebar plus a list, and two problems showed up in use:
+
+1. **It looked dull and generic.** One flat teal, plain boxes, nothing that said where to start.
+2. **It was confusing to use.** Six filter groups (type, category, provider, location, price, home visit) were on screen at once, with roughly 100 checkboxes between them. A first-time visitor had to learn the filters before they could ask a question. The most common intent, "I want X, near Y, under Z", took several clicks across several groups.
+
+The redesign follows three ideas, and each one answers one of those problems.
+
+| Idea | Problem it answers | What it became |
+|---|---|---|
+| Conversational search | Too many clicks to say what you want | One ask bar that reads a sentence |
+| Action-first | Users were left to work out the next step | Suggestions, an empty state that fixes itself, compare |
+| Purposeful minimalism | Too much on screen at once | Filters tucked behind pills, simpler cards |
+
+### What changed and the reasoning
+
+- **Ask bar instead of a sidebar.**
+  - Plain words still search as you type. A sentence with structure ("thyroid tests in Bangkok under 2000 THB") is read by `src/lib/engine/intent.ts`, shown back as "Understood as" chips, and applied on Enter.
+  - *Why local rules and not an LLM:* the app has no backend, the dataset is small and structured, and the README's performance numbers depend on everything running instantly in the browser. A rule-based parser needs no API key, adds no latency or cost, gives the same answer every time, and is unit tested (`intent.test.ts`). `parseIntent` is the single seam where a model could replace it later.
+  - *Why wait for Enter on structured sentences:* applying half a sentence while someone types ("under 2" then "under 20") would flash wrong results. Plain words keep the instant, debounced search.
+  - *Why show chips before applying:* the user can see what was understood, so a wrong guess is visible and cheap to fix. Anything the parser does not recognise stays a keyword search, so nothing is silently dropped.
+- **Filters on demand (pills and sheets).** Type, Where, Price and Home visit are pills, and "All filters" opens the full panel. Each opens a focused sheet (side panel on desktop, bottom sheet on phones). *Why:* most people use one or two filters, so the other four groups were noise. The sheets reuse the existing `FilterPanel` through a new `only` option, so the filter logic, counts and the pending-choice "Show N results" button are unchanged. Zero-count options are still disabled, not hidden.
+- **Action-first suggestions.** A row under the bar offers example questions at first, then "Drop X → N results", "Cheapest first" and "Top rated first". *Why:* the engine already knows which single change brings the most results back (`suggestRemovals`), so the interface should offer it instead of making people work it out.
+- **Empty state that helps.** It lists ranked ways back plus "Ask differently", which focuses the bar. *Why:* a dead end is the worst moment in a search; this turns it into one tap.
+- **Compare tray.** Up to three services side by side. Services priced in different currencies are shown together but never ranked or converted, which keeps the existing "no cross-currency conversion" rule. *Why:* comparing was listed as left out in the first version, and it is the natural next action after finding candidates.
+- **Simpler cards.** Provider avatar, one price line per service, less boxing. Chips now show only what the pills do not already show (search text, category, provider). *Why:* less to read per result.
+- **Visual system.** New tokens (teal to indigo accent, softer surfaces, layered shadows), a glowing ask bar as the focal point, and light and dark themes with a manual toggle applied before first paint so there is no flash. System fonts are kept so there is no extra request and no layout shift.
+
+### What did not change
+
+The engine, data normalisation, URL codec and the API are untouched. The URL is still the single source of truth, so reload, sharing and back/forward behave as before. Currencies are never converted, zero-count facets are never hidden, and the skeleton still matches the card footprint (CLS 0.0000 on the e2e run).
+
+### Verification
+
+- 55 unit tests, including the new parser tests.
+- 19 browser checks over the DevTools protocol. They cover the new layout, a sentence turning into URL filters, the compare sheet, mobile overflow and the performance gates (applying a filter to updated results about 14 ms, worst keystroke about 7 ms).
+- Not done: a real screen reader pass, a contrast audit, and a check on real phones.
+
+### Development note
+
+Do not run `npm run build` while `npm run dev` is running. They share the `.next` folder, and the dev server then serves a mix of old and new files, which shows up as half-styled pages. Stop dev first, or build elsewhere.
+
 ## Data mistakes and what the customer sees
 
 The full list, with live counts from the file, is on the **/data-issues** page (linked from the footer). The rules live in `src/lib/data/normalize.ts` and are tested. In summary:
@@ -95,7 +140,7 @@ Not measured: a throttled mid-range laptop or a phone CPU. These are numbers fro
 
 ## What I deliberately left out, and what I would do next
 
-- **Side-by-side compare tray**, the "How this price is built" popover, and story chips such as "Full-body check-up near Bangkok". I chose depth on the three things the brief hints at (counts, currencies, data mistakes) over breadth.
+- The "How this price is built" popover. (The side-by-side compare tray and example-question chips were added in the UI overhaul.) I chose depth on the three things the brief hints at (counts, currencies, data mistakes) over breadth.
 - **First paint is a skeleton, not results.** The data arrives through the mock API, which is how the loading and error states exist at all. This avoids an unfiltered flash, but a crawler gets no results HTML. With more time: server-render the first page from the same pure engine, keep the skeleton for client-side loading.
 - **Web Worker for the engine.** Not needed at this size (see the numbers above). If the dataset grew 10x or ran on slow phones, this is the next step, and the engine is already pure so it would move cleanly.
 - **Accessibility:** native controls throughout, a skip link, visible focus, labelled groups, a polite live region announcing the result count, and a `<dialog>` for the drawer. I have **not** tested with a real screen reader, and I have not run an automated contrast audit. Treat those as open.

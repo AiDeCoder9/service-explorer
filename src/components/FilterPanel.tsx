@@ -7,11 +7,15 @@ import type { FacetOption, SearchIndex } from '@/lib/engine';
 import { type FacetName, type Filters, type SearchResult, explainZero } from '@/lib/engine/search';
 import { TYPE_LABEL, formatMoney } from '@/lib/format';
 
+export type PanelGroup = 'type' | 'category' | 'provider' | 'place' | 'price' | 'home';
+
 interface PanelProps {
   index: SearchIndex;
   filters: Filters;
   result: SearchResult;
   onChange: (next: Filters) => void;
+  /** show only these groups (default: all) */
+  only?: PanelGroup[];
 }
 
 const toggle = <T,>(list: T[], v: T): T[] => (list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
@@ -57,7 +61,8 @@ function OptionRow({ id, label, tag, count, checked, onToggle, hint }: RowProps)
   );
 }
 
-export function FilterPanel({ index, filters, result, onChange }: PanelProps) {
+export function FilterPanel({ index, filters, result, onChange, only }: PanelProps) {
+  const show = (g: PanelGroup) => !only || only.includes(g);
   const uid = useId();
   const [providerQuery, setProviderQuery] = useState('');
 
@@ -83,7 +88,7 @@ export function FilterPanel({ index, filters, result, onChange }: PanelProps) {
 
   return (
     <div className="panel">
-      <fieldset>
+      {show('type') && <fieldset>
         <legend>Service type</legend>
         <ul>
           {index.type.map((o) =>
@@ -91,9 +96,9 @@ export function FilterPanel({ index, filters, result, onChange }: PanelProps) {
               () => onChange({ ...filters, types: toggle(filters.types, o.key as Filters['types'][number]) })),
           )}
         </ul>
-      </fieldset>
+      </fieldset>}
 
-      <fieldset>
+      {show('category') && <fieldset>
         <legend>Category</legend>
         <ul>
           {index.category.map((o) => {
@@ -118,9 +123,9 @@ export function FilterPanel({ index, filters, result, onChange }: PanelProps) {
             );
           })}
         </ul>
-      </fieldset>
+      </fieldset>}
 
-      <fieldset>
+      {show('provider') && <fieldset>
         <legend>Provider</legend>
         <input
           type="search" className="field" placeholder="Search providers" aria-label="Search providers"
@@ -130,9 +135,9 @@ export function FilterPanel({ index, filters, result, onChange }: PanelProps) {
           {providers.map((o) => row('provider', o, filters.providers.includes(Number(o.key)), () => onChange({ ...filters, providers: toggle(filters.providers, Number(o.key)) })))}
           {providers.length === 0 && <li className="muted small">No provider named “{providerQuery}”.</li>}
         </ul>
-      </fieldset>
+      </fieldset>}
 
-      <fieldset>
+      {show('place') && <fieldset>
         <legend>Location</legend>
         <ul>
           {countries.map((c) => (
@@ -144,11 +149,11 @@ export function FilterPanel({ index, filters, result, onChange }: PanelProps) {
             </li>
           ))}
         </ul>
-      </fieldset>
+      </fieldset>}
 
-      <PriceFilter filters={filters} result={result} onChange={onChange} />
+      {show('price') && <PriceFilter filters={filters} result={result} onChange={onChange} />}
 
-      <fieldset>
+      {show('home') && <fieldset>
         <legend>Home visit</legend>
         <ul>
           <OptionRow
@@ -156,9 +161,9 @@ export function FilterPanel({ index, filters, result, onChange }: PanelProps) {
             checked={filters.homeTest} onToggle={() => onChange({ ...filters, homeTest: !filters.homeTest })}
           />
         </ul>
-      </fieldset>
+      </fieldset>}
 
-      {activeNames(filters).length > 0 && (
+      {!only && activeNames(filters).length > 0 && (
         <button type="button" className="btn ghost clear-all" onClick={() => onChange({ ...filters, types: [], categories: [], subcategories: [], providers: [], places: [], homeTest: false, price: null, q: '' })}>
           Clear all filters
         </button>

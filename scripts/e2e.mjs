@@ -26,7 +26,7 @@ const check = (name, ok, detail = '') => { results.push(ok); console.log(`${ok ?
 const nav = async (path) => { await send('Page.navigate', { url: BASE + path }); await sleep(300); };
 const countText = () => ev(`document.querySelector('.count-line')?.textContent ?? ''`);
 const ready = (label = 'ready') => waitFor(`/services/.test(document.querySelector('.count-line')?.textContent ?? '')`, label);
-const clickLabel = (text, scope = '.sidebar') => ev(`(() => { const l = [...document.querySelectorAll(${JSON.stringify(scope + ' .opt label')})].find((x) => x.querySelector('.opt-label')?.childNodes[0]?.textContent.trim() === ${JSON.stringify(text)}); if (!l) return false; l.querySelector('input').click(); return true; })()`);
+const clickLabel = (text, scope = '.drawer[open]') => ev(`(() => { const l = [...document.querySelectorAll(${JSON.stringify(scope + ' .opt label')})].find((x) => x.querySelector('.opt-label')?.childNodes[0]?.textContent.trim() === ${JSON.stringify(text)}); if (!l) return false; l.querySelector('input').click(); return true; })()`);
 
 await send('Page.enable'); await send('Runtime.enable'); await send('Network.enable');
 await send('Page.addScriptToEvaluateOnNewDocument', { source: `window.__cls = 0; new PerformanceObserver((l) => { for (const e of l.getEntries()) if (!e.hadRecentInput) window.__cls += e.value; }).observe({ type: 'layout-shift', buffered: true });` });
@@ -39,13 +39,16 @@ const first = await countText();
 check('A1 loads filtered view from URL (skeleton first, then results)', skeleton && /31 services/.test(first), `${first.trim()} after ${t}ms`);
 check('A2 no horizontal overflow at 1280', await ev(`document.documentElement.scrollWidth <= innerWidth`));
 
-// B. filter click -> URL -> back/forward restore
-const t0 = await ev(`(async () => { const before = document.querySelector('.count-line').textContent; const s = performance.now(); [...document.querySelectorAll('.sidebar .opt label')].find((x) => x.textContent.startsWith('Lab tests')).querySelector('input').click(); while (document.querySelector('.count-line').textContent === before) await new Promise((r) => requestAnimationFrame(r)); return performance.now() - s; })()`);
-await sleep(300);
+// B. filter sheet -> URL -> back/forward restore
+await ev(`document.querySelectorAll('.pill')[0].click()`);
+await waitFor(`!!document.querySelector('.drawer[open]')`, 'type sheet open');
+await clickLabel('Lab tests'); await sleep(150);
+const t0 = await ev(`(async () => { const before = document.querySelector('.count-line').textContent; const s = performance.now(); document.querySelector('.drawer-foot .btn').click(); while (document.querySelector('.count-line').textContent === before) await new Promise((r) => requestAnimationFrame(r)); return performance.now() - s; })()`);
+await sleep(400);
 const url1 = await ev('location.search');
 const afterLab = await countText();
 check('B1 filter updates URL and results', /type=lab_test%2Cpackage|type=package%2Clab_test|type=lab_test/.test(url1) && afterLab !== first, `${url1}  -> ${afterLab.trim()}`);
-check('B2 filter click to updated results under 100ms', t0 < 100, `${t0.toFixed(1)}ms`);
+check('B2 applying a filter to updated results under 100ms', t0 < 100, `${t0.toFixed(1)}ms`);
 await ev('history.back()'); await sleep(500);
 check('B3 back button restores previous view', (await countText()) === first && !(await ev('location.search')).includes('lab_test'));
 await ev('history.forward()'); await sleep(500);
@@ -80,7 +83,7 @@ check('E2 retry recovers', /services/.test(await countText()));
 // F. mobile drawer
 await send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
 await nav('/'); await ready();
-check('F1 mobile: sidebar hidden, filters button shown', await ev(`getComputedStyle(document.querySelector('.sidebar')).display === 'none' && getComputedStyle(document.querySelector('.filters-btn')).display !== 'none'`));
+check('F1 mobile: no sidebar, filter pills and ask bar visible', await ev(`!document.querySelector('.sidebar') && getComputedStyle(document.querySelector('.filters-btn')).display !== 'none' && !!document.getElementById('q')`));
 check('F2 mobile: no horizontal overflow at 390', await ev(`document.documentElement.scrollWidth <= innerWidth`), `scrollWidth ${await ev('document.documentElement.scrollWidth')} vs ${await ev('innerWidth')}`);
 await ev(`document.querySelector('.filters-btn').click()`);
 await waitFor(`!!document.querySelector('.drawer[open]')`, 'drawer open');
@@ -91,6 +94,23 @@ check('F3 drawer button shows pending count before applying', /Show [\d,]+ resul
 await ev(`document.querySelector('.drawer-foot .btn').click()`); await sleep(600);
 check('F4 apply updates URL and closes drawer', (await ev('location.search')).includes('lab_test') && !(await ev(`!!document.querySelector('.drawer[open]')`)));
 await send('Emulation.clearDeviceMetricsOverride');
+
+// H. ask in plain words
+await nav('/'); await ready();
+await ev(`(() => { const i = document.getElementById('q'); const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set; set.call(i, 'thyroid tests in Bangkok under 2000 THB'); i.dispatchEvent(new Event('input', { bubbles: true })); })()`);
+await waitFor(`!!document.querySelector('.ask-preview')`, 'understood-as preview');
+await ev(`document.querySelector('form.ask').requestSubmit()`);
+await waitFor(`location.search.includes('max=2000')`, 'ask applied to url');
+const askUrl = await ev('location.search');
+check('H1 a sentence becomes filters in the URL', /type=lab_test/.test(askUrl) && /Bangkok/.test(askUrl) && /cur=THB/.test(askUrl) && /q=thyroid/.test(askUrl), askUrl);
+
+// I. compare tray
+await nav('/'); await ready();
+await ev(`document.querySelectorAll('.cmp input')[0].click(); document.querySelectorAll('.cmp input')[1].click();`);
+await waitFor(`!!document.querySelector('.tray .btn.primary:not([disabled])')`, 'compare enabled');
+await ev(`document.querySelector('.tray .btn.primary').click()`);
+await waitFor(`!!document.querySelector('dialog.compare[open]')`, 'compare open');
+check('I1 compare tray opens a side-by-side sheet', await ev(`document.querySelectorAll('dialog.compare[open] thead th').length === 2`));
 
 // G. layout shift over the session
 const cls = await ev('window.__cls');
