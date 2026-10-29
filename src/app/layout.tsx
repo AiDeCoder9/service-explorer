@@ -25,7 +25,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </div>
         {children}
         <footer className="footer">
-          <Link href="/data-issues">Data issues and how we handled them</Link>
+          <Link href="/data-issues">Why some data looks different</Link>
           <DemoControls />
         </footer>
       </body>

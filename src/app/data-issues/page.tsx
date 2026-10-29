@@ -1,49 +1,95 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { GROUP_COPY, GROUP_ORDER, ISSUE_COPY, type IssueCopy, type IssueGroup } from '@/lib/data/issueCopy';
 import { normalizeDataset } from '@/lib/data/normalize';
+import type { DataIssue } from '@/lib/data/types';
 import { loadRaw } from '@/server/mock';
 
-export const metadata: Metadata = { title: 'Data issues · MedEx Service Explorer' };
+export const metadata: Metadata = { title: 'Why some data looks different · MedEx Service Explorer' };
 export const dynamic = 'force-dynamic';
 
-const GROUPS: { title: string; blurb: string; match: (code: string) => boolean }[] = [
-  { title: 'Hidden from customers', blurb: 'A service is shown only if the service, its provider and its category are all active.', match: (c) => c.startsWith('hidden-') },
-  { title: 'Prices', blurb: 'Prices we could not trust or that need special wording. We never show a made-up number.', match: (c) => c.startsWith('price-') || c.startsWith('wellness-') },
-  { title: 'Missing or inconsistent fields', blurb: 'Kept in the results, with a defined fallback.', match: (c) => ['no-category', 'no-subcategory', 'subcategory-mismatch', 'provider-unrated', 'title-whitespace'].includes(c) },
-  { title: 'Judgement calls', blurb: 'Things that look like mistakes but are not.', match: (c) => c === 'same-title-listings' },
-];
+const n = (v: number) => v.toLocaleString('en');
+
+/** Unknown codes still show up, using the raw decision text, so nothing is silently dropped. */
+function copyFor(i: DataIssue): IssueCopy {
+  return ISSUE_COPY[i.code] ?? { group: 'details', title: i.code, found: 'Found in the data.', seen: i.decision };
+}
+
+function unitFor(c: IssueCopy, count: number) {
+  const unit = c.unit ?? 'services';
+  return `${n(count)} ${count === 1 ? unit.replace(/s$/, '') : unit}`;
+}
 
 export default function DataIssues() {
   const raw = loadRaw();
   const data = normalizeDataset(raw);
+  const total = raw.services.length;
+  const shown = data.services.length;
+  const pct = Math.round((shown / total) * 100);
+
+  const byGroup = new Map<IssueGroup, DataIssue[]>();
+  for (const i of data.issues) {
+    const g = copyFor(i).group;
+    byGroup.set(g, [...(byGroup.get(g) ?? []), i]);
+  }
+
   return (
-    <main className="shell prose" id="main">
+    <main className="shell issues" id="main">
       <p><Link href="/">← Back to the explorer</Link></p>
-      <h1>Data issues</h1>
-      <p className="muted">
-        Providers enter this data by hand. Of {raw.services.length.toLocaleString('en')} services, {data.services.length.toLocaleString('en')} are
-        visible to customers. Each row below is a rule in <code>normalize.ts</code>, with a count from the real file and what a customer sees instead.
-      </p>
-      {GROUPS.map((g) => {
-        const rows = data.issues.filter((i) => g.match(i.code));
-        if (rows.length === 0) return null;
+
+      <section className="intro">
+        <h1>Why some data looks different</h1>
+        <p className="muted">
+          Providers type their information in by hand, so some entries are incomplete or odd. Here is what we found
+          and what we do about it, so you never see something misleading.
+        </p>
+      </section>
+
+      <section className="issues-hero" aria-label="Summary">
+        <p className="issues-big"><strong>{n(shown)}</strong> <span>of {n(total)} services are shown</span></p>
+        <div className="meter" role="img" aria-label={`${pct} percent of services are shown`}><span style={{ width: `${pct}%` }} /></div>
+        <p className="muted small">The other {n(total - shown)} are hidden on purpose. Some services fail more than one check, so the counts below can add up to more.</p>
+      </section>
+
+      {GROUP_ORDER.map((g) => {
+        const rows = byGroup.get(g);
+        if (!rows?.length) return null;
+        const info = GROUP_COPY[g];
         return (
-          <section key={g.title}>
-            <h2>{g.title}</h2>
-            <p className="muted">{g.blurb}</p>
-            <table>
-              <thead><tr><th scope="col">Rule</th><th scope="col" className="num">Count</th><th scope="col">What the customer gets</th><th scope="col">Example id</th></tr></thead>
-              <tbody>
-                {rows.map((i) => (
-                  <tr key={i.code}>
-                    <th scope="row"><code>{i.code}</code></th>
-                    <td className="num">{i.count.toLocaleString('en')}</td>
-                    <td>{i.decision}</td>
-                    <td><code className="small">{i.examples[0]}</code></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <section key={g} className="issue-group" aria-labelledby={`g-${g}`}>
+            <div className="issue-group-head">
+              <span className="avatar" aria-hidden="true">{info.icon}</span>
+              <div>
+                <h2 id={`g-${g}`}>{info.title}</h2>
+                <p className="muted small">{info.blurb}</p>
+              </div>
+            </div>
+            <div className="cards">
+              {rows.map((i) => {
+                const c = copyFor(i);
+                return (
+                  <article key={i.code} className="card issue">
+                    <header>
+                      <h3>{c.title}</h3>
+                      <span className="badge">{unitFor(c, i.count)}</span>
+                    </header>
+                    <p><span className="k">What we found</span>{c.found}</p>
+                    <p>
+                      <span className="k">What customers see</span>{c.seen}
+                      {c.sample && <span className="sample">{c.sample}</span>}
+                    </p>
+                    <details className="tech">
+                      <summary>Technical details</summary>
+                      <dl>
+                        <dt>Rule</dt><dd><code>{i.code}</code></dd>
+                        <dt>How it is handled</dt><dd>{i.decision}</dd>
+                        <dt>Example id</dt><dd><code>{i.examples[0]}</code></dd>
+                      </dl>
+                    </details>
+                  </article>
+                );
+              })}
+            </div>
           </section>
         );
       })}

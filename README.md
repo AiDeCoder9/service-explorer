@@ -119,7 +119,7 @@ Do not run `yarn build` while `yarn dev` is running. They share the `.next` fold
 
 ## Data mistakes and what the customer sees
 
-The full list, with live counts from the file, is on the **/data-issues** page (linked from the footer). The rules live in `src/lib/data/normalize.ts` and are tested. In summary:
+The full list, with live counts from the file, is on the **/data-issues** page (linked from the footer as "Why some data looks different"). It is written in plain language for customers; the rule names and example ids sit behind a collapsed "Technical details" toggle on each card. The rules live in `src/lib/data/normalize.ts` and are tested. In summary:
 
 | Finding | Decision |
 | --- | --- |
