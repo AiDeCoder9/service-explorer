@@ -315,6 +315,30 @@ thead th { background: var(--accent-soft); font-size: 0.8125rem; }
 .num { text-align: right; font-variant-numeric: tabular-nums; }
 @media (max-width: 640px) { .prose table { display: block; overflow-x: auto; } }
 
+/* ---------- data issues page ---------- */
+.issues { display: grid; gap: 4px; align-content: start; }
+.issues-hero {
+  display: grid; gap: 10px; padding: 20px; border-radius: var(--radius); border: 1.5px solid transparent;
+  background: linear-gradient(var(--surface), var(--surface)) padding-box, var(--glow) border-box; box-shadow: var(--shadow-md);
+}
+.issues-big { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px; }
+.issues-big strong { font-size: clamp(1.75rem, 6vw, 2.5rem); letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.issues-big span { color: var(--muted); }
+.meter { height: 8px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
+.meter span { display: block; height: 100%; border-radius: inherit; background: var(--glow); }
+.issue-group { display: grid; gap: 12px; margin-top: 28px; }
+.issue-group-head { display: flex; align-items: center; gap: 12px; }
+.issue-group-head .avatar { font-size: 1.1rem; }
+.issue { gap: 8px; }
+.issue p { display: grid; gap: 2px; }
+.issue .k { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.02em; text-transform: uppercase; color: var(--muted); }
+.sample { justify-self: start; margin-top: 4px; padding: 2px 10px; border-radius: 999px; background: var(--accent-soft); font-size: 0.8125rem; font-weight: 600; }
+.tech { border-top: 1px solid var(--border); padding-top: 8px; font-size: 0.875rem; }
+.tech summary { cursor: pointer; color: var(--accent); width: fit-content; padding: 2px 0; }
+.tech dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; margin-top: 8px; color: var(--muted); }
+.tech dt { font-weight: 600; }
+.tech dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+
 /* Reduced motion keeps fades that help comprehension and removes movement. */
 @media (prefers-reduced-motion: reduce) {
   .drawer { transition: opacity 150ms ease, overlay 150ms allow-discrete, display 150ms allow-discrete; transform: none; }
