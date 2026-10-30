@@ -154,4 +154,4 @@ Not measured: a throttled mid-range laptop or a phone CPU. These are numbers fro
 
 ## Where I used AI tools
 
-I used Claude Code throughout: to plan the approach (a design-doc session before any code), to audit the dataset, and to write the code and tests, which I reviewed. The brief's hint about data mistakes shaped the audit; the findings above come from running scripts over the real file, not from guesswork.
+I used Claude Code throughout: to plan the approach (a design-doc session before any code), to audit the dataset, and to write the code and tests, which I reviewed. Two Claude Code skills were used: `/office-hours` for the planning session (the design doc before any code) and `emil-design-eng` for UI polish (spacing, press feedback, motion). Claude Code subagents also helped with research during planning. The brief's hint about data mistakes shaped the audit; the findings above come from running scripts over the real file, not from guesswork.
