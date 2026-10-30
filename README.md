@@ -5,6 +5,8 @@ A page where a customer browses and filters health services grouped by provider,
 > The story it is designed around: *"I need a full-body check-up near Bangkok, under 5,000 THB, and I'd like to compare a few hospitals side by side."*
 > Try it: `/?place=city:Bangkok&type=package&cur=THB&max=5000`
 
+> **Before you judge the numbers:** some data looks different from the raw file on purpose. Read the **Why some data looks different** page (`/data-issues`, linked from the footer) to see what was hidden or changed, and why.
+
 ## Run it
 
 ```bash
